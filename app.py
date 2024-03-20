@@ -1,12 +1,12 @@
 from flask import Flask,render_template,request
 import pickle
 import numpy as np
+import joblib as joblib
 
-popular_df = pickle.load(open('popular.pkl','rb'))
-pt = pickle.load(open('pt.pkl','rb'))
-books = pickle.load(open('books.pkl','rb'))
-similarity_scores = pickle.load(open('similarity_scores.pkl','rb'))
-
+popular_df = joblib.load(open('popular.pkl', 'rb'))
+pt = joblib.load(open('pt.pkl', 'rb'))
+books = joblib.load(open('books.pkl', 'rb'))
+similarity_scores = joblib.load(open('similarity_scores.pkl', 'rb'))
 app = Flask(__name__)
 
 @app.route('/')
@@ -30,16 +30,23 @@ def recommend():
     similar_items = sorted(list(enumerate(similarity_scores[index])), key=lambda x: x[1], reverse=True)[1:5]
 
     data = []
-    for i in similar_items:
-        item = []
-        temp_df = books[books['Book-Title'] == pt.index[i[0]]]
-        item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Title'].values))
-        item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Author'].values))
-        item.extend(list(temp_df.drop_duplicates('Book-Title')['Image-URL-M'].values))
+    try:
+        for i in similar_items:
+            item = []
+            temp_df = books[books['Book-Title'] == pt.index[i[0]]]
+            item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Title'].values))
+            item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Author'].values))
+            item.extend(list(temp_df.drop_duplicates('Book-Title')['Image-URL-M'].values))
 
-        data.append(item)
+            data.append(item)
 
-    print(data)
+            print(data)
+    except (IndexError, ValueError) as e:  # Handle specific errors
+            error_message = "Book not found or invalid input. Please try a different title."
+            print("Error:", error_message)
+            return render_template('recommend.html', error_message=error_message)
+
+           
 
     return render_template('recommend.html',data=data)
 
